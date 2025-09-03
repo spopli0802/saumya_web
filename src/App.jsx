@@ -56,7 +56,7 @@ export default function App() {
       <header className="header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="main-title">Suamya Sukthankar</h1>
+            <h1 className="main-title">Saumya Sukthankar</h1>
           </div>
           <div className="header-right">
                           <a href="https://www.instagram.com/by_saumya?igsh=ZHQ2dTRpZG4wMGJt" target="_blank" rel="noopener noreferrer" className="instagram-link">

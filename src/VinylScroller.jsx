@@ -406,7 +406,7 @@ export default function VinylScroller({ onImageClick }) {
         color: "#666"
       }}>
         <div></div>
-        <div>© 2025 Suamya Sukthankar. All rights reserved.</div>
+        <div>© 2025 Saumya Sukthankar. All rights reserved.</div>
       </div>
       
       {/* Project Popup Modal - Redesigned to match reference */}
