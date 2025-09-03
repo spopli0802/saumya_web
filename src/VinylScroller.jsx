@@ -352,6 +352,25 @@ export default function VinylScroller({ onImageClick }) {
         </div>
       </div>
       
+      {/* Footer */}
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: "#edf3ed",
+        padding: "15px 40px",
+        zIndex: 100,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: "14px",
+        color: "#666"
+      }}>
+        <div></div>
+        <div>© 2025 Suamya Sukthankar. All rights reserved.</div>
+      </div>
+      
       {/* Project Popup Modal - Redesigned to match reference */}
       {isModalOpen && selectedProject && (
         <motion.div
