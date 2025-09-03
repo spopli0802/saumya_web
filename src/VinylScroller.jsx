@@ -213,7 +213,7 @@ const LAYERS = [
 
 /** Tweak feel here */
 const CONFIG = {
-  background: "#edf3ed", // page background
+  background: "#f5f5f5", // page background - light gray
   size: 400,              // card square size (px)
   depth: 1680,            // depth for Z positioning
   step: 280,              // increased distance between cards on Z (px)
@@ -227,7 +227,14 @@ export default function VinylScroller({ onImageClick }) {
   
   // Smooth spring-based travel for user-controlled scrolling
   const travelTarget = useMotionValue(0);
-  const travel = useSpring(travelTarget, { stiffness: 70, damping: 22, mass: 0.4 });
+  
+  // Mobile-optimized spring configuration
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const springConfig = isMobile 
+    ? { stiffness: 120, damping: 30, mass: 0.3 } // Faster, more responsive for mobile
+    : { stiffness: 70, damping: 22, mass: 0.4 }; // Original config for desktop
+  
+  const travel = useSpring(travelTarget, springConfig);
   const containerRef = React.useRef(null);
   
   // State for popup modal
@@ -259,6 +266,9 @@ export default function VinylScroller({ onImageClick }) {
     const node = containerRef.current;
     if (!node) return;
 
+    // Mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     const handleWheel = (e) => {
       e.preventDefault();
       const delta = e.deltaY * 0.85; // slightly dampened for smoothness
@@ -266,18 +276,46 @@ export default function VinylScroller({ onImageClick }) {
     };
 
     let lastY = null;
+    let touchStartTime = 0;
+    let touchStartY = 0;
+    
     const onTouchStart = (e) => {
-      if (e.touches && e.touches.length > 0) lastY = e.touches[0].clientY;
+      if (e.touches && e.touches.length > 0) {
+        lastY = e.touches[0].clientY;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      }
     };
+    
     const onTouchMove = (e) => {
       if (e.touches && e.touches.length > 0 && lastY !== null) {
+        e.preventDefault(); // Prevent default scrolling on mobile
         const currentY = e.touches[0].clientY;
-        const delta = (lastY - currentY) * 0.85; // mimic wheel deltaY with damping
+        
+        // Mobile-optimized sensitivity and smoothness
+        const sensitivity = isMobile ? 1.5 : 0.85;
+        const delta = (lastY - currentY) * sensitivity;
+        
         lastY = currentY;
         handleScroll(delta);
       }
     };
-    const onTouchEnd = () => { lastY = null; };
+    
+    const onTouchEnd = (e) => {
+      if (lastY !== null) {
+        const touchEndTime = Date.now();
+        const touchDuration = touchEndTime - touchStartTime;
+        const touchDistance = Math.abs(touchStartY - lastY);
+        
+        // Add momentum scrolling for mobile
+        if (isMobile && touchDuration < 300 && touchDistance > 50) {
+          const momentum = (touchDistance / touchDuration) * 20;
+          const direction = touchStartY > lastY ? 1 : -1;
+          handleScroll(momentum * direction);
+        }
+      }
+      lastY = null;
+    };
 
     node.addEventListener('wheel', handleWheel, { passive: false });
     node.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -358,7 +396,7 @@ export default function VinylScroller({ onImageClick }) {
         bottom: 0,
         left: 0,
         right: 0,
-        background: "#edf3ed",
+        background: "#f5f5f5",
         padding: "15px 40px",
         zIndex: 100,
         display: "flex",
@@ -405,10 +443,14 @@ export default function VinylScroller({ onImageClick }) {
               width: "90vw",
               maxWidth: "1200px",
               height: "80vh",
+              maxHeight: window.innerWidth <= 768 ? "90vh" : "600px", // Full height on mobile
               display: "flex",
+              flexDirection: window.innerWidth <= 768 ? "column" : "row", // Stack vertically on mobile
               position: "relative",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.3)"
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              overflow: window.innerWidth <= 768 ? "auto" : "hidden" // Scrollable on mobile
             }}
+            className={window.innerWidth <= 768 ? "mobile-popup" : ""}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
@@ -440,11 +482,15 @@ export default function VinylScroller({ onImageClick }) {
             
             {/* Left Panel - Project Information */}
             <div style={{
-              width: "35%",
-              padding: "60px 40px 40px 40px",
+              width: window.innerWidth <= 768 ? "100%" : "35%",
+              height: window.innerWidth <= 768 ? "30%" : "auto", // Take remaining height on mobile
+              padding: window.innerWidth <= 768 ? "25px" : "60px 40px 40px 40px",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "center"
+              justifyContent: window.innerWidth <= 768 ? "flex-start" : "center",
+              order: window.innerWidth <= 768 ? 2 : 1, // Move to bottom on mobile
+              overflow: window.innerWidth <= 768 ? "auto" : "visible", // Scrollable on mobile
+              minHeight: window.innerWidth <= 768 ? "200px" : "auto" // Ensure minimum height on mobile
             }}>
               <div style={{ color: "#888", fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>
                 {getProjectCategory(selectedProject.data.title)}
@@ -494,9 +540,12 @@ export default function VinylScroller({ onImageClick }) {
             
             {/* Right Panel - Image Gallery */}
             <div style={{
-              width: "65%",
+              width: window.innerWidth <= 768 ? "100%" : "65%",
+              height: window.innerWidth <= 768 ? "70%" : "100%", // Much larger on mobile
               position: "relative",
-              background: "#000"
+              background: "#000",
+              order: window.innerWidth <= 768 ? 1 : 2, // Move to top on mobile
+              minHeight: window.innerWidth <= 768 ? "400px" : "auto" // Ensure minimum height on mobile
             }}>
                               <img
                   src={selectedProject.data.allImages[currentImageIndex]}
@@ -519,19 +568,19 @@ export default function VinylScroller({ onImageClick }) {
                     )}
                     style={{
                       position: "absolute",
-                      left: "20px",
+                      left: window.innerWidth <= 768 ? "10px" : "20px",
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "rgba(255,255,255,0.9)",
                       border: "none",
                       borderRadius: "50%",
-                      width: "50px",
-                      height: "50px",
+                      width: window.innerWidth <= 768 ? "40px" : "50px",
+                      height: window.innerWidth <= 768 ? "40px" : "50px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      fontSize: "18px",
+                      fontSize: window.innerWidth <= 768 ? "16px" : "18px",
                       color: "#333"
                     }}
                   >
@@ -544,19 +593,19 @@ export default function VinylScroller({ onImageClick }) {
                     )}
                     style={{
                       position: "absolute",
-                      right: "20px",
+                      right: window.innerWidth <= 768 ? "10px" : "20px",
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "rgba(255,255,255,0.9)",
                       border: "none",
                       borderRadius: "50%",
-                      width: "50px",
-                      height: "50px",
+                      width: window.innerWidth <= 768 ? "40px" : "50px",
+                      height: window.innerWidth <= 768 ? "40px" : "50px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      fontSize: "18px",
+                      fontSize: window.innerWidth <= 768 ? "16px" : "18px",
                       color: "#333"
                     }}
                   >
@@ -620,6 +669,9 @@ function LayerCard({ layer, zOffset, travel, depth, size, minOpacity, imageIndex
     }
   }, [isHovered, hoverY]);
 
+  // Mobile detection for better touch handling
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
   const transform = useMotionTemplate`translate(-50%, -50%) translateY(${hoverY}px) translateZ(${z}px) scale(${scale})`;
   const filterValue = useMotionTemplate`blur(${blur}px)`;
 
@@ -647,6 +699,20 @@ function LayerCard({ layer, zOffset, travel, depth, size, minOpacity, imageIndex
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={() => onImageClick(imageIndex)}
+      onTouchStart={(e) => {
+        if (isMobile) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Immediate response for mobile touch
+          onImageClick(imageIndex);
+        }
+      }}
+      onTouchEnd={(e) => {
+        if (isMobile) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
     >
       <motion.div
         style={{
